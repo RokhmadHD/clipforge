@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<title>caption-karaoke</title>
+<style>
+  :root {
+    --cf-accent: #FFB84D;
+    --cf-text: #FFFFFF;
+    --cf-font: Inter, system-ui, sans-serif;
+    --cf-highlight: #7C5CFF;
+    --cf-caption-size: 84px;
+  }
+  html, body {
+    margin: 0; width: 1080px; height: 1920px; overflow: hidden;
+    background: transparent; /* overlay: must stay transparent */
+    font-family: var(--cf-font);
+  }
+  .wrap {
+    position: absolute; left: 0; right: 0; padding: 0 80px; box-sizing: border-box;
+    text-align: center; font-weight: 800; font-size: var(--cf-caption-size); line-height: 1.2;
+    text-transform: uppercase; color: var(--cf-text); text-shadow: 0 6px 28px rgba(0,0,0,.8);
+    opacity: 0;
+  }
+  .wrap.bottom { bottom: 330px; }
+  .wrap.center { top: 50%; transform: translateY(-50%); }
+  .w { display: inline-block; margin: 0 .12em; transition: none; }
+  .w.on { background: var(--cf-highlight); border-radius: 14px; padding: 0 .22em; margin: 0 -.1em; transform: scale(1.08); }
+</style>
+</head>
+<body>
+<div class="wrap bottom" id="wrap"></div>
+<script>
+// Template contract: see docs/TEMPLATE_CONTRACT.md
+// `w` = words inside this clip, times RELATIVE to clip start: [{text,start,end}]
+(() => {
+  const q = new URLSearchParams(location.search);
+  const params = JSON.parse(q.get("p") || "{}");
+  const theme = JSON.parse(q.get("theme") || "{}");
+  const W = JSON.parse(q.get("w") || "[]");
+  const root = document.documentElement;
+  const wrap = document.getElementById("wrap");
+  const PAGE = 4; // words shown at once
+
+  for (const [k, v] of Object.entries(theme)) root.style.setProperty(k, v);
+  if (params.highlight) root.style.setProperty("--cf-highlight", params.highlight);
+  if (params.fontSize) root.style.setProperty("--cf-caption-size", params.fontSize + "px");
+  wrap.className = "wrap " + (params.position === "center" ? "center" : "bottom");
+
+  let shownPage = -1;
+  let spans = [];
+  const activeIndex = (t) => { let i = -1; for (let k = 0; k < W.length; k++) if (W[k].start <= t) i = k; return i; };
+
+  function renderPage(page) {
+    wrap.textContent = "";
+    spans = W.slice(page * PAGE, page * PAGE + PAGE).map((w) => {
+      const s = document.createElement("span");
+      s.className = "w"; s.textContent = w.text;
+      wrap.appendChild(s);
+      return s;
+    });
+    shownPage = page;
+  }
+
+  window.__seek = (t) => {
+    const i = activeIndex(t);
+    const last = W[W.length - 1];
+    if (i < 0 || (last && t > last.end + 0.4)) { wrap.style.opacity = "0"; return; }
+    wrap.style.opacity = "1";
+    const page = Math.floor(i / PAGE);
+    if (page !== shownPage) renderPage(page);
+    spans.forEach((s, k) => s.classList.toggle("on", page * PAGE + k === i));
+  };
+
+  window.__ready = (document.fonts ? document.fonts.ready : Promise.resolve()).then(() => window.__seek(0));
+})();
+</script>
+</body>
+</html>

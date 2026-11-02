@@ -1,0 +1,21 @@
+/* Design tokens -- from the ClipForge mockup. Change colors here, nowhere else. */
+:root {
+  --bg: #0e0f13;
+  --panel: #16181f;
+  --panel-2: #1c1f28;
+  --border: #262a35;
+  --text: #e8e9ee;
+  --text-dim: #8a8fa0;
+
+  --accent: #7c5cff;      /* violet: primary */
+  --accent-soft: rgba(124, 92, 255, 0.18);
+  --amber: #ffb84d;       /* AI suggestions */
+  --teal: #2fd4b4;        /* secondary track */
+  --danger: #ff5c7a;
+
+  --radius: 10px;
+  --space: 8px;
+
+  --font-ui: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}

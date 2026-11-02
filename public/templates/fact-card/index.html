@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<title>fact-card</title>
+<style>
+  :root {
+    --cf-accent: #FFB84D;
+    --cf-text: #FFFFFF;
+    --cf-font: Inter, system-ui, sans-serif;
+  }
+  html, body {
+    margin: 0; width: 1080px; height: 1920px; overflow: hidden;
+    background: transparent; /* overlay: must stay transparent */
+    font-family: var(--cf-font); color: var(--cf-text);
+  }
+  .wrap { position: absolute; left: 0; right: 0; top: 560px; padding: 0 90px; box-sizing: border-box; text-align: center; }
+  .title { font-size: 280px; font-weight: 800; line-height: 1; letter-spacing: -6px; text-shadow: 0 8px 48px rgba(0,0,0,.65); }
+  .bar { height: 12px; width: 260px; margin: 40px auto; background: var(--cf-accent); border-radius: 6px; }
+  .body { font-size: 60px; font-weight: 600; line-height: 1.25; text-shadow: 0 4px 28px rgba(0,0,0,.75); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="title" id="title"></div>
+  <div class="bar" id="bar"></div>
+  <div class="body" id="body"></div>
+</div>
+<script>
+// Template contract: see docs/TEMPLATE_CONTRACT.md
+// Everything is a pure function of t (seconds since clip start). No rAF, no timers.
+(() => {
+  const q = new URLSearchParams(location.search);
+  const params = JSON.parse(q.get("p") || "{}");
+  const theme = JSON.parse(q.get("theme") || "{}");
+  const D = parseFloat(q.get("d") || "3"); // clip duration in seconds
+  const root = document.documentElement;
+
+  for (const [k, v] of Object.entries(theme)) root.style.setProperty(k, v);
+  if (params.accent) root.style.setProperty("--cf-accent", params.accent);
+
+  const title = document.getElementById("title");
+  const bar = document.getElementById("bar");
+  const body = document.getElementById("body");
+  title.textContent = params.title ?? "";
+  body.textContent = params.body ?? "";
+
+  const clamp = (x) => Math.min(1, Math.max(0, x));
+  const easeOut = (x) => 1 - Math.pow(1 - x, 3);
+  const easeBack = (x) => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+  const anim = params.anim || "pop";
+
+  window.__seek = (t) => {
+    const out = easeOut(clamp((D - t) / 0.35)); // 1 -> 0 over the last 0.35s
+    const tIn = easeOut(clamp(t / 0.5));
+    let scale = 1, dy = 0;
+    if (anim === "pop") scale = 0.6 + 0.4 * easeBack(clamp(t / 0.6));
+    if (anim === "slide-up") dy = 90 * (1 - tIn);
+    title.style.opacity = String(tIn * out);
+    title.style.transform = `translateY(${dy}px) scale(${scale})`;
+
+    const barIn = easeOut(clamp((t - 0.15) / 0.4));
+    bar.style.opacity = String(out);
+    bar.style.transform = `scaleX(${barIn})`;
+
+    const bodyIn = easeOut(clamp((t - 0.3) / 0.5));
+    body.style.opacity = String(bodyIn * out);
+    body.style.transform = `translateY(${40 * (1 - bodyIn)}px)`;
+  };
+
+  window.__ready = (document.fonts ? document.fonts.ready : Promise.resolve()).then(() => window.__seek(0));
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+{
+  "name": "clipforge",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "description": "AI-assisted short-video editor: HTML/three.js scenes driven by audio + subtitles, rendered with headless Chromium + FFmpeg.",
+  "scripts": {
+    "templates:index": "node scripts/build-template-index.mjs",
+    "predev": "npm run templates:index",
+    "dev": "vite",
+    "prebuild": "npm run templates:index",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "preview": "vite preview",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build",
+    "icon:placeholder": "node scripts/gen-placeholder-icon.mjs",
+    "render:sample": "node renderer/render.mjs --template public/templates/fact-card --out samples/fact-card.mp4 --duration 3"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.12.4",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "zustand": "^5.0.16"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.12.4",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "puppeteer-core": "^25.16.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5",
+    "vitest": "^5.0.5"
+  }
+}

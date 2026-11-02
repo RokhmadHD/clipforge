@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.vite/
+src-tauri/target/
+src-tauri/gen/
+samples/*.mp4
+samples/*.png
+.render-cache/
+.env
+.DS_Store
+*.log

@@ -1,0 +1,14 @@
+{
+  "id": "caption-karaoke",
+  "name": "Caption Karaoke",
+  "kind": "overlay",
+  "size": [1080, 1920],
+  "fps": 30,
+  "defaultDuration": 4,
+  "needsWords": true,
+  "params": {
+    "highlight": { "type": "color", "label": "Warna highlight", "default": "#7C5CFF" },
+    "fontSize": { "type": "number", "label": "Ukuran font", "default": 84, "min": 40, "max": 140, "step": 2 },
+    "position": { "type": "enum", "label": "Posisi", "default": "bottom", "values": ["bottom", "center"] }
+  }
+}

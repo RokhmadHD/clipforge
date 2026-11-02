@@ -1,0 +1,14 @@
+{
+  "id": "fact-card",
+  "name": "Fact Card Sinematik",
+  "kind": "overlay",
+  "size": [1080, 1920],
+  "fps": 30,
+  "defaultDuration": 3,
+  "params": {
+    "title": { "type": "text", "label": "Judul", "default": "1883" },
+    "body": { "type": "text", "label": "Isi", "default": "Letusan Krakatau terdengar sampai 4.800 km jauhnya.", "multiline": true },
+    "accent": { "type": "color", "label": "Warna aksen", "default": "#FFB84D" },
+    "anim": { "type": "enum", "label": "Animasi", "default": "pop", "values": ["pop", "slide-up", "fade"] }
+  }
+}
