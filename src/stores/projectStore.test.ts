@@ -318,6 +318,41 @@ describe("projectStore.setWords", () => {
   });
 });
 
+describe("projectStore.setAudio", () => {
+  beforeEach(reset);
+
+  it("sets the audio and marks the project dirty", () => {
+    expect(state().dirty).toBe(false);
+    state().setAudio({ path: "vo.mp3", duration: 12.5 });
+    expect(state().project.audio).toEqual({ path: "vo.mp3", duration: 12.5 });
+    expect(state().dirty).toBe(true);
+  });
+
+  it("is a single undo step: undo restores the previous audio, redo restores the new one", () => {
+    const before = state().project;
+    const previousAudio = before.audio;
+    state().setAudio({ path: "vo.mp3", duration: 12.5 });
+    expect(state().canUndo).toBe(true);
+    state().undo();
+    expect(state().project).toBe(before);
+    expect(state().project.audio).toBe(previousAudio);
+    expect(state().dirty).toBe(false);
+    state().redo();
+    expect(state().project.audio).toEqual({ path: "vo.mp3", duration: 12.5 });
+  });
+
+  it("setAudio(null) clears the audio and is undoable too", () => {
+    state().setAudio({ path: "vo.mp3", duration: 12.5 });
+    state().markSaved();
+    state().setAudio(null);
+    expect(state().project.audio).toBeNull();
+    expect(state().dirty).toBe(true);
+    state().undo();
+    expect(state().project.audio).toEqual({ path: "vo.mp3", duration: 12.5 });
+    expect(state().dirty).toBe(false);
+  });
+});
+
 describe("projectStore dirty tracking", () => {
   beforeEach(reset);
 

@@ -33,6 +33,12 @@ interface UiState {
   setLibraryWidth: (width: number) => void;
   setInspectorWidth: (width: number) => void;
   setTimelineHeight: (height: number) => void;
+  /**
+   * Display cache of the imported audio waveform peaks (T5). UI-only state:
+   * NOT part of layout persistence, never written to storage.
+   */
+  audioPeaks: number[] | null;
+  setAudioPeaks: (peaks: number[] | null) => void;
 }
 
 const pickLayout = (state: Pick<UiState, keyof LayoutValues>): LayoutValues => ({
@@ -87,6 +93,8 @@ export const createUiStore = (storage: LayoutStorage = createLocalStorage()) => 
       persist({ ...pickLayout(get()), timelineHeight: value });
       set({ timelineHeight: value });
     },
+    audioPeaks: null,
+    setAudioPeaks: (audioPeaks) => set({ audioPeaks }),
   }));
 };
 

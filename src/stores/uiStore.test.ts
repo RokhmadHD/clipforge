@@ -37,6 +37,38 @@ describe("uiStore panel layout setters", () => {
   });
 });
 
+describe("uiStore audioPeaks (display cache, not persisted)", () => {
+  it("sets and clears the waveform peaks", () => {
+    const peaks = [0.1, 0.5, 1, 0.3];
+    useUiStore.getState().setAudioPeaks(peaks);
+    expect(useUiStore.getState().audioPeaks).toEqual(peaks);
+    useUiStore.getState().setAudioPeaks(null);
+    expect(useUiStore.getState().audioPeaks).toBeNull();
+  });
+
+  it("replaces previous peaks on a new import", () => {
+    useUiStore.getState().setAudioPeaks([0.2]);
+    useUiStore.getState().setAudioPeaks([0.9, 0.4]);
+    expect(useUiStore.getState().audioPeaks).toEqual([0.9, 0.4]);
+  });
+
+  it("never writes audioPeaks into layout persistence storage", () => {
+    const storage = createInMemoryLayoutStorage();
+    const store = createUiStore(storage);
+    store.getState().setAudioPeaks([0.1, 0.9]);
+    expect(store.getState().audioPeaks).toEqual([0.1, 0.9]);
+    const raw = storage.getItem(LAYOUT_STORAGE_KEY);
+    expect(raw).toBeNull(); // setAudioPeaks must not trigger persist
+    // and even after a real layout write, the payload stays layout-only
+    store.getState().setLibraryWidth(360);
+    expect(Object.keys(JSON.parse(storage.getItem(LAYOUT_STORAGE_KEY) as string))).toEqual([
+      "libraryWidth",
+      "inspectorWidth",
+      "timelineHeight",
+    ]);
+  });
+});
+
 describe("uiStore layout persistence", () => {
   it("persists layout values on every setter call", () => {
     const storage = createInMemoryLayoutStorage();

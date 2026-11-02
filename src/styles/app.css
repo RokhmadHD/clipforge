@@ -129,6 +129,8 @@ button { cursor: pointer; }
 .timeline .tl-row { height: 34px; border-bottom: 1px solid var(--border); position: relative; }
 .timeline .tl-row-audio { background: repeating-linear-gradient(90deg, transparent 0, transparent 89px, rgba(255,255,255,.035) 90px); }
 .audio-placeholder { position: absolute; inset: 0; display: flex; align-items: center; padding-left: 10px; color: var(--text-dim); font-size: 10px; opacity: .7; }
+.audio-placeholder.error { color: var(--danger); opacity: 1; padding-right: 10px; }
+.audio-waveform { position: absolute; top: 4px; left: 0; display: block; }
 .timeline .tl-word { top: 6px; bottom: 6px; }
 .timeline .tl-clip { top: 4px; bottom: 4px; }
 .timeline .overlay-clip { background: rgba(124, 92, 255, .72); color: #fff; }

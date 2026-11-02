@@ -41,6 +41,12 @@ interface ProjectState {
    * in the SAME committed project (edges/offsets preserved), so anchors never dangle.
    */
   setWords: (words: Word[]) => void;
+  /**
+   * Set or clear the project audio (audio import). One undo step (no
+   * coalescing) via the standard commit()/lastSaved dirty pattern, like
+   * setWords. Pass null to clear; undo restores the previous audio.
+   */
+  setAudio: (audio: { path: string; duration: number } | null) => void;
   /** Insert a clip from a template manifest; startWord is a Project.words index. Returns the new id. */
   addClip: (template: TemplateManifest, startWord: number) => string | null;
   deleteClip: (clipId: string) => void;
@@ -127,6 +133,8 @@ export const useProjectStore = create<ProjectState>((set, get) => {
           overlays: s.project.overlays.map(clampClip),
         }, null);
       }),
+    setAudio: (audio) =>
+      set((s) => commit(s, { ...s.project, audio }, null)),
     setClipParam: (clipId, key, value) =>
       set((s) => {
         const apply = (c: Clip): Clip => ({ ...c, params: { ...c.params, [key]: value } });
