@@ -1,0 +1,52 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "share": "disabled",
+  "mcp": {
+    "lean-ctx": { "enabled": false }
+  },
+  "permission": {
+    "external_directory": "deny",
+    "webfetch": "deny",
+    "websearch": "deny",
+    "read": {
+      "*": "allow",
+      "*.env": "deny",
+      "*.env.*": "deny"
+    },
+    "edit": {
+      "*": "allow",
+      "src/types/**": "deny",
+      "docs/**": "deny",
+      "docs/agent-notes/**": "allow",
+      "AGENTS.md": "deny",
+      "opencode.json": "deny",
+      "package.json": "deny",
+      "package-lock.json": "deny",
+      "src-tauri/**": "deny"
+    },
+    "bash": {
+      "*": "deny",
+      "ls*": "allow",
+      "pwd": "allow",
+      "cat *": "allow",
+      "head *": "allow",
+      "tail *": "allow",
+      "grep *": "allow",
+      "wc *": "allow",
+      "mkdir *": "allow",
+      "git status*": "allow",
+      "git diff*": "allow",
+      "git log*": "allow",
+      "git add *": "allow",
+      "git commit *": "allow",
+      "git push*": "deny",
+      "npm install": "allow",
+      "npm run typecheck": "allow",
+      "npm run test*": "allow",
+      "npm run build": "allow",
+      "npm run templates:index": "allow",
+      "npx vitest*": "allow",
+      "npx tsc*": "allow"
+    }
+  }
+}
