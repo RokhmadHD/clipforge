@@ -1,6 +1,6 @@
 # ClipForge — Current Status
 
-> Last verified: 2026-11-02 (resizable panels)  
+> Last verified: 2026-11-02 (T1 undo/redo + T2 layout persistence + T3 save/open merged)  
 > Update this file whenever implementation status or validation changes.  
 > Status labels: `DONE` = implemented and verified; `PARTIAL` = some working code exists; `PLANNED` = not implemented; `BLOCKED` = cannot proceed without resolving a dependency/decision.
 
@@ -25,8 +25,10 @@
 | Material Library | PARTIAL | Search by name/id, data-driven category chips (All/Scene/Overlay), "+ Insert" at the playhead word, and live 9:16 template preview thumbnails (mini iframes rendering the actual template with manifest defaults; word-driven templates get demo words). |
 | Project mutation actions | PARTIAL | `projectStore` now has `addClip`, `deleteClip`, `duplicateClip`, `setClipAnchors`, `shiftClip`; covered by unit tests. |
 | Asset import/library | PLANNED | MaterialLibrary lists templates; it is not a full imported asset manager. |
-| Project save/open | PLANNED | No persistence implementation verified. |
-| Undo/redo | PLANNED | Explicit TODO in projectStore. |
+| Project save/open | DONE | Browser-native: TopBar Simpan downloads `.clipforge.json`, Buka validates version+shape and loads it (`src/lib/projectFile.ts`, unit-tested). Native Tauri dialog/fs plugin transport is a documented follow-up (blocked on Rust toolchain). |
+| Dirty state | DONE | `projectStore.dirty` derived from `lastSaved` snapshot (undo back to the saved state clears it); TopBar shows an honest "Belum disimpan / Tersimpan" status + amber dot. |
+| Undo/redo | DONE | Pure history engine `src/lib/history.ts` (100-step limit, 500 ms coalescing with injectable time); wired to all project mutations, TopBar buttons and Ctrl/Cmd+Z / Ctrl+Shift+Z / Ctrl+Y hotkeys. Built by the opencode agent (T1), verified and merged. |
+| Panel layout persistence | DONE | Library/Inspector width and timeline height persist in `localStorage` (`clipforge.ui.layout.v1`, clamped, corrupt-safe) via injectable `src/lib/layoutStorage.ts`. Built by a subagent (T2), verified and merged. |
 | Audio import/transcription/alignment | PLANNED | Sample data only; no end-to-end pipeline verified. |
 | Variants | PLANNED | Data type exists; UI and render flow not implemented. |
 | Native render queue | PLANNED | Rust RenderJob model exists; queue/sidecar/event integration is not implemented. |
@@ -77,8 +79,9 @@
 | `npm install` | PASS — dependencies present; `vitest` added as devDependency in session 2. |
 | `npm run typecheck` | PASS — re-run after all session-2 changes. |
 | `npm run build` | PASS — Vite production build completed after all session-2 changes. |
-| `npm run test` (vitest) | PASS — 42 tests / 4 files (`anchors`, `insert`, `templates`, `projectStore`). |
+| `npm run test` (vitest) | PASS — 88 tests / 8 files (history, layoutStorage, projectFile, anchors, insert, templates, projectStore, uiStore); re-run after merging T1+T2 and the T3 save/open work. |
 | Browser smoke test (`npm run dev`, Chromium via automation) | PASS — layout renders, library search + insert, timeline selection, duplicate/delete, word-snapped drag (+90px = +1 word, verified twice), resize handles, play/pause, word-click seek, karaoke `__seek` sync, no stage/timeline overlap. |
+| Multi-agent tasks smoke test (2026-11-02) | PASS — dirty dot + "Belum disimpan" on mutation, Undo button and Ctrl+Z restore the value and clear dirty, Redo re-marks dirty, Simpan clears dirty; library width 360px survives reload from `clipforge.ui.layout.v1`. Open-file GUI flow NOT testable in the automation browser (file upload unsupported there) — covered by unit tests (round-trip + rejection cases). |
 | Panel resize smoke test (2026-11-02) | PASS — library 280→340px, inspector 320→380px, timeline 260→320px via drag handles (exact pixel tracking); double-click resets all three to defaults; clamp limits covered by unit tests. |
 | Library card redesign smoke test (2026-11-02) | PASS — both cards render real template previews in 9:16 thumbs (karaoke shows demo words, fact-card shows default title/body), thumb iframe scale tracks panel resize (280→360px → scale 0.0917→0.1269), no badge/foot overflow at default panel width, insert still works. |
 | `cargo check --manifest-path src-tauri/Cargo.toml` | BLOCKED — missing system `glib-2.0` development package / `glib-2.0.pc` (not re-run this session; unchanged environment). |
@@ -97,7 +100,7 @@ Do not convert “not run” into “pass”. Re-run checks after dependencies a
 - Overlay lanes are limited to two visible rows (lane 0/1); `pickOverlayLane` clamps to lane 1.
 - Long template names truncate with ellipsis at narrow panel widths (tooltip shows the full name).
 - Audio lane has no waveform; no audio asset loading exists yet.
-- Undo/redo, autosave and project save/open are not implemented.
+- Autosave is not implemented (dirty state and manual save/open are). Undo/redo and save/open are.
 - The in-browser smoke test covers the Vite frontend only; the Tauri desktop shell remains unverified.
 
 ## Immediate next steps

@@ -28,6 +28,9 @@ Do not rely on previous chat history. Inspect the actual repository before codin
 - Vite + React + TypeScript frontend scaffold, Tauri 2 / Rust scaffold, node_modules installed.
 - Project and template types, sample project, Zustand stores, template manifest index generator.
 - Two templates: `caption-karaoke` and `fact-card`.
+- Undo/redo (T1): pure history engine `src/lib/history.ts` (100-step limit, 500 ms coalescing with injectable time), wired to every project mutation; TopBar Undo/Redo buttons + Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z, Ctrl+Y hotkeys (`src/lib/useHotkeys.ts`).
+- Project save/open + dirty state (T3): `src/lib/projectFile.ts` serializes/parses/validates `.clipforge.json` (version + shape checks); TopBar has Simpan (download) and Buka (file input) plus an honest "Belum disimpan / Tersimpan" state with an amber dot. Dirty is derived from a `lastSaved` reference snapshot, so undoing back to the saved state clears it. Native Tauri dialog/fs plugin transport is a documented follow-up.
+- Panel layout persistence (T2): library/inspector width and timeline height persist in `localStorage` via injectable `src/lib/layoutStorage.ts` (clamped, corrupt-safe).
 - `TopBar.tsx`, `ModePlaceholder.tsx`.
 - Resizable panels: drag handles between library/preview, preview/inspector, and above the timeline; sizes live in `uiStore` (clamped, double-click to reset, hidden under 1100px).
 - `MaterialLibrary.tsx`: search by name/id, data-driven category chips (All/Scene/Overlay), "+ Insert" per template that adds a clip at the playhead word (`projectStore.addClip`), and live 9:16 template preview thumbnails (scaled mini iframes with manifest defaults + active theme tokens; word-driven templates get demo words; scale tracks panel resize via ResizeObserver).
@@ -39,8 +42,7 @@ Do not rely on previous chat history. Inspect the actual repository before codin
 - Documentation set: `AGENTS.md`, `README.md`, `CLAUDE.md`, `GEMINI.md`, Copilot instructions, Kiro steering, and docs for status, brief, architecture, roadmap, decisions, development, template contract and UI spec.
 
 ### Not implemented / not verified
-- Project save/open, autosave and dirty state.
-- Undo/redo history.
+- Autosave (manual save/open and dirty state exist).
 - Audio import and waveform on the timeline audio lane.
 - Anchor `offset` editing and lane reordering UI (drag/resize only shifts whole word indices).
 - Real Material Library thumbnails (still a gradient placeholder).
@@ -51,13 +53,12 @@ Do not rely on previous chat history. Inspect the actual repository before codin
 - Git initialization / baseline commit (last checked: no `.git` directory).
 - Tauri desktop runtime (`cargo check` blocked on system `glib-2.0`; only the browser frontend was runtime-tested).
 
-### Last known validation (2026-11-01 session 2 + 2026-11-02)
+### Last known validation (2026-11-02)
 - `npm run templates:index`: PASS; indexed 2 templates.
-- `npm run typecheck`: PASS.
+- `npm run typecheck`: PASS (after merging T1+T2 and T3 save/open work).
 - `npm run build`: PASS.
-- `npm run test` (vitest): PASS; 44 tests / 5 files.
-- Browser smoke test against `npm run dev` (Chromium automation, no Tauri): PASS — layout, search, insert, selection, duplicate/delete, word-snapped drag (+90px moved exactly +1 word, verified twice), resize handles, play/pause, word-click seek and karaoke `__seek` sync all observed working; preview stage no longer overlaps the timeline. Synthetic multi-point drags occasionally overshot by one word; human-speed drags were not tested.
-- Panel resize smoke test (2026-11-02): PASS — library 280→340px, inspector 320→380px, timeline 260→320px via drag handles; double-click reset verified.
+- `npm run test` (vitest): PASS; 88 tests / 8 files.
+- Browser smoke test against `npm run dev` (Chromium automation, no Tauri): PASS — dirty dot + "Belum disimpan" on mutation; Undo button and Ctrl+Z restore the value and clear dirty; Redo re-marks dirty; Simpan clears dirty; library width 360px survives reload. Earlier: layout, search, insert, selection, duplicate/delete, word-snapped drag, resize handles, play/pause, word-click seek, karaoke `__seek` sync, panel resize sweep 200→440px. Open-file GUI flow NOT testable in the automation browser (upload unsupported) — covered by unit tests.
 - `cargo check` / `npm run tauri:dev`: NOT RE-RUN; still expected BLOCKED on missing system `glib-2.0`.
 - Tauri desktop runtime test: NOT RUN.
 
@@ -87,12 +88,11 @@ Follow `docs/UI_SPEC.md` and the supplied mockup:
 
 ## Immediate recommended next tasks
 
-1. Project save/open (versioned JSON) + dirty-state indicator in TopBar, then autosave.
-2. Undo/redo history over `projectStore` mutations.
-3. Audio import + waveform rendering on the timeline audio lane.
-4. Lane reordering UI and Inspector editing of anchor `offset` values.
-5. Rendered template thumbnails for Material Library tiles.
-6. Initialize Git and create a baseline commit after reviewing the working tree and user approval.
+1. T4 (agent): subtitle import SRT/VTT/JSON -> Project.words via a new store action (positions update through anchors automatically) + Ctrl+S save hotkey.
+2. T5 (agent): audio import via file input + Web Audio duration extraction + waveform on the timeline audio lane.
+3. Autosave on top of the dirty state.
+4. Tauri-native save/open dialogs (plugin-dialog + plugin-fs) once `glib-2.0` is installed and `cargo check` passes.
+5. Lane reordering UI and Inspector editing of anchor `offset` values.
 
 ## Work log
 
@@ -150,3 +150,11 @@ Append a new dated entry to Work log and update the sections above:
 ```
 
 Update `docs/STATUS.md` and `docs/ROADMAP.md` whenever implementation status changes. This handoff file summarizes continuity; it does not replace detailed documentation.
+
+### 2026-11-02 — Multi-agent round: T1 merge, T2, T3 (save/open + dirty)
+- **Goal:** User asked to use subagents to finish everything doable fast.
+- **Done:** Verified and fast-forward-merged the opencode agent's T1 (undo/redo; 62 tests, typecheck/build PASS in its worktree). Launched a general-purpose subagent for T2 (layout persistence in localStorage via injectable `layoutStorage`; committed `b7fcd59` in worktree, merged). Launched an Explore agent for save/open research (recommendation: browser-native Blob/file-input first; Tauri plugins as follow-up). Implemented T3 myself: `src/lib/projectFile.ts` (+ tests), `projectStore` dirty tracking derived from `lastSaved`, TopBar Simpan/Buka + honest save-state indicator. Found and fixed a real bug: store init created three different sample instances so undo-to-saved didn't clear dirty.
+- **Files changed:** merged T1/T2 commits (`5449d56`, `b7fcd59`) + new `src/lib/projectFile.ts`/`.test.ts`, `src/stores/projectStore.ts`, `src/components/layout/TopBar.tsx`, `src/styles/app.css`, `src/stores/projectStore.test.ts`, docs.
+- **Validation:** typecheck PASS, 88 tests / 8 files PASS, build PASS. Browser smoke PASS: dirty dot + "Belum disimpan" on mutation; Undo button and Ctrl+Z clear dirty; Redo re-marks dirty; Simpan clears dirty; 360px panel width survives reload. Open-file GUI flow untestable in the automation browser (upload unsupported) — covered by unit tests.
+- **Known issues:** Open flow only validated by unit tests in GUI terms; autosave still open; Tauri runtime still blocked on `glib-2.0`.
+- **Next task:** T4 subtitle import, then T5 audio import + waveform.

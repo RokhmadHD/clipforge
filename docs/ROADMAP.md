@@ -25,10 +25,10 @@ Roadmap is directional. Update checkboxes only after implementation and validati
 ## M2 — Project editing foundation
 - [x] Add/remove/duplicate clips (`projectStore.addClip/deleteClip/duplicateClip` + library insertion + Inspector actions)
 - [ ] Edit word anchors and lane ordering (drag/resize with word snapping done; anchor `offset` editing and lane reordering still open)
-- [ ] Project save/open (versioned JSON)
-- [ ] Autosave and dirty-state handling
-- [ ] Undo/redo history
-- [ ] Project schema validation and migration tests
+- [x] Project save/open (versioned JSON) — browser-native download/upload with validation; native Tauri dialogs as follow-up
+- [ ] Autosave (dirty-state handling is DONE)
+- [x] Undo/redo history (`src/lib/history.ts` + hotkeys, 100-step limit, coalescing)
+- [ ] Project schema validation and migration tests (version/shape validation done in `projectFile.ts`; migration tests open)
 
 ## M3 — Media and subtitles
 - [ ] Import audio and visual assets
