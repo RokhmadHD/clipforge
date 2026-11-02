@@ -92,6 +92,14 @@ button { cursor: pointer; }
 .stage-inner iframe { position: absolute; inset: 0; width: 1080px; height: 1920px; border: 0; background: transparent; pointer-events: none; }
 .transport { display: flex; align-items: center; gap: 12px; width: 360px; }
 .transport input[type="range"] { flex: 1; accent-color: var(--accent); }
+.preview-options { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; max-width: 360px; }
+.preview-info { font-size: 10px; }
+.btn.small.active { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.safe-area { position: absolute; inset: 0; pointer-events: none; }
+.safe-frame { position: absolute; border: 1px dashed rgba(255, 255, 255, .38); }
+.safe-frame.action { inset: 10%; }
+.safe-frame.title { inset: 5%; border-color: rgba(255, 184, 77, .5); }
+.safe-label { position: absolute; top: 2px; left: 4px; font: 9px var(--font-mono); color: rgba(255, 255, 255, .55); }
 
 /* ---------- Inspector ---------- */
 .inspector .tabs { margin: 8px 10px; }

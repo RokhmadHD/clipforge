@@ -24,6 +24,9 @@ const clamp = (value: number, [min, max]: readonly [number, number]) =>
 interface UiState {
   mode: Mode;
   setMode: (m: Mode) => void;
+  /** Non-rendering title/action safe guides over the preview stage (UI_SPEC §5). */
+  safeArea: boolean;
+  toggleSafeArea: () => void;
   libraryWidth: number;
   inspectorWidth: number;
   timelineHeight: number;
@@ -66,6 +69,8 @@ export const createUiStore = (storage: LayoutStorage = createLocalStorage()) => 
   return create<UiState>((set, get) => ({
     mode: "editor",
     setMode: (mode) => set({ mode }),
+    safeArea: false,
+    toggleSafeArea: () => set((s) => ({ safeArea: !s.safeArea })),
     ...loadInitialLayout(storage),
     setLibraryWidth: (libraryWidth) => {
       const value = clamp(libraryWidth, LAYOUT_LIMITS.libraryWidth);

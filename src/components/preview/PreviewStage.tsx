@@ -6,6 +6,7 @@ import type { Clip } from "../../types/project";
 import { usePlaybackStore } from "../../stores/playbackStore";
 import { useProjectStore } from "../../stores/projectStore";
 import { useTemplateStore } from "../../stores/templateStore";
+import { useUiStore } from "../../stores/uiStore";
 
 interface PreviewLayer {
   clip: Clip;
@@ -24,6 +25,8 @@ export function PreviewStage() {
   const toggle = usePlaybackStore((s) => s.toggle);
   const pause = usePlaybackStore((s) => s.pause);
   const templates = useTemplateStore((s) => s.templates);
+  const safeArea = useUiStore((s) => s.safeArea);
+  const toggleSafeArea = useUiStore((s) => s.toggleSafeArea);
   const frames = useRef<Record<string, HTMLIFrameElement | null>>({});
   const stageAreaRef = useRef<HTMLDivElement>(null);
   const [area, setArea] = useState({ w: 0, h: 0 });
@@ -87,6 +90,18 @@ export function PreviewStage() {
 
   return (
     <section className="preview" aria-label="Preview video">
+      <div className="preview-options">
+        <button
+          type="button"
+          className={`btn small ${safeArea ? "active" : ""}`}
+          onClick={toggleSafeArea}
+          aria-pressed={safeArea}
+          title="Tampilkan panduan safe-area (non-rendering)"
+        >
+          Safe area
+        </button>
+        <span className="preview-info muted mono">{width}×{height} · {project.meta.fps} FPS</span>
+      </div>
       <div className="stage-area" ref={stageAreaRef}>
         <div
           className="stage"
@@ -125,6 +140,16 @@ export function PreviewStage() {
                 : selectedLayer
                   ? "Clip tidak aktif pada posisi playhead"
                   : "Belum ada clip pada posisi ini"}
+            </div>
+          )}
+          {safeArea && (
+            <div className="safe-area" aria-hidden="true">
+              <div className="safe-frame action">
+                <span className="safe-label">80%</span>
+              </div>
+              <div className="safe-frame title">
+                <span className="safe-label">90%</span>
+              </div>
             </div>
           )}
         </div>
