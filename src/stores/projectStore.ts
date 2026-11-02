@@ -51,6 +51,10 @@ const patchClips = (clips: Clip[], id: string, fn: (c: Clip) => Clip): Clip[] =>
 const hasClip = (project: Project, id: string | null): boolean =>
   id !== null && (project.scenes.some((c) => c.id === id) || project.overlays.some((c) => c.id === id));
 
+// One shared initial instance: lastSaved, history and project must reference the
+// SAME object or the by-reference dirty comparison breaks after undo.
+const initialProject = createSampleProject();
+
 export const useProjectStore = create<ProjectState>((set, get) => {
   /**
    * Apply a project mutation as one undo step.
@@ -74,12 +78,12 @@ export const useProjectStore = create<ProjectState>((set, get) => {
   };
 
   return {
-    project: createSampleProject(),
+    project: initialProject,
     selectedClipId: "clip-fact-1883",
-    history: createHistory(createSampleProject()),
+    history: createHistory(initialProject),
     canUndo: false,
     canRedo: false,
-    lastSaved: createSampleProject(),
+    lastSaved: initialProject,
     dirty: false,
     selectClip: (selectedClipId) => set({ selectedClipId }),
     /** Replace the whole project (e.g. when opening a file). Starts a fresh history. */
