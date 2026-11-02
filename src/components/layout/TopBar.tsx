@@ -1,5 +1,7 @@
 import { useRef, useState } from "react";
-import { downloadProjectFile, parseProjectFile } from "../../lib/projectFile";
+import { parseProjectFile } from "../../lib/projectFile";
+import { parseSubtitleFile } from "../../lib/subtitles";
+import { saveCurrentProject } from "../../lib/useHotkeys";
 import { useProjectStore } from "../../stores/projectStore";
 import { useRenderStore } from "../../stores/renderStore";
 import { useUiStore, type Mode } from "../../stores/uiStore";
@@ -13,8 +15,8 @@ const MODES: Array<{ id: Mode; label: string }> = [
 export function TopBar() {
   const name = useProjectStore((s) => s.project.meta.name);
   const dirty = useProjectStore((s) => s.dirty);
-  const markSaved = useProjectStore((s) => s.markSaved);
   const setProject = useProjectStore((s) => s.setProject);
+  const setWords = useProjectStore((s) => s.setWords);
   const undo = useProjectStore((s) => s.undo);
   const redo = useProjectStore((s) => s.redo);
   const canUndo = useProjectStore((s) => s.canUndo);
@@ -24,7 +26,9 @@ export function TopBar() {
   const setMode = useUiStore((s) => s.setMode);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const subtitleInputRef = useRef<HTMLInputElement>(null);
   const [openError, setOpenError] = useState<string | null>(null);
+  const [subtitleError, setSubtitleError] = useState<string | null>(null);
 
   const openFile = async (file: File) => {
     try {
@@ -37,6 +41,20 @@ export function TopBar() {
       }
     } catch {
       setOpenError("Gagal membaca file proyek.");
+    }
+  };
+
+  const importSubtitles = async (file: File) => {
+    try {
+      const result = parseSubtitleFile(file.name, await file.text());
+      if (result.ok) {
+        setWords(result.words);
+        setSubtitleError(null);
+      } else {
+        setSubtitleError(result.error);
+      }
+    } catch {
+      setSubtitleError("Gagal membaca file subtitle.");
     }
   };
 
@@ -71,11 +89,13 @@ export function TopBar() {
         ↷ Redo
       </button>
       <span className="save-state" role="status">
-        {openError
-          ? <span className="save-error" role="alert">{openError}</span>
-          : dirty
-            ? "Belum disimpan"
-            : "Tersimpan"}
+        {subtitleError
+          ? <span className="save-error" role="alert">{subtitleError}</span>
+          : openError
+            ? <span className="save-error" role="alert">{openError}</span>
+            : dirty
+              ? "Belum disimpan"
+              : "Tersimpan"}
       </span>
       <input
         ref={fileInputRef}
@@ -91,14 +111,25 @@ export function TopBar() {
       <button className="btn" onClick={() => fileInputRef.current?.click()} title="Buka file proyek .clipforge.json">
         Buka
       </button>
+      <input
+        ref={subtitleInputRef}
+        type="file"
+        accept=".srt,.vtt,.txt,.json,application/json"
+        hidden
+        onChange={(event) => {
+          const file = event.currentTarget.files?.[0];
+          if (file) void importSubtitles(file);
+          event.currentTarget.value = "";
+        }}
+      />
       <button
         className="btn"
-        onClick={() => {
-          downloadProjectFile(useProjectStore.getState().project);
-          markSaved();
-        }}
-        title="Unduh proyek sebagai .clipforge.json"
+        onClick={() => subtitleInputRef.current?.click()}
+        title="Impor subtitle .srt / .vtt / .json sebagai kata proyek"
       >
+        Subjudul
+      </button>
+      <button className="btn" onClick={() => saveCurrentProject()} title="Unduh proyek sebagai .clipforge.json (Ctrl/Cmd+S)">
         Simpan
       </button>
       <button className="btn" disabled title="Antrean render: milestone M1/M4">
