@@ -31,12 +31,12 @@ Roadmap is directional. Update checkboxes only after implementation and validati
 - [ ] Project schema validation and migration tests (version/shape validation done in `projectFile.ts`; migration tests open)
 
 ## M3 — Media and subtitles
-- [ ] Import audio and visual assets
-- [ ] Audio metadata/duration extraction
-- [ ] Subtitle import (SRT/VTT/JSON)
+- [x] Import audio (visual assets still open)
+- [x] Audio metadata/duration extraction (Web Audio decode, `src/lib/audio.ts`)
+- [x] Subtitle import (SRT/VTT/JSON, `src/lib/subtitles.ts`)
 - [ ] Word-level alignment workflow
-- [ ] Re-alignment updates clip positions through anchors
-- [ ] Waveform/timeline audio track
+- [ ] Re-alignment updates clip positions through anchors (`setWords` clamps anchor indices; true re-timing still open)
+- [x] Waveform/timeline audio track
 
 ## M4 — Rendering
 - [ ] Define deterministic renderer input contract

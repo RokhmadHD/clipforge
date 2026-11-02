@@ -31,6 +31,9 @@ Do not rely on previous chat history. Inspect the actual repository before codin
 - Undo/redo (T1): pure history engine `src/lib/history.ts` (100-step limit, 500 ms coalescing with injectable time), wired to every project mutation; TopBar Undo/Redo buttons + Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z, Ctrl+Y hotkeys (`src/lib/useHotkeys.ts`).
 - Project save/open + dirty state (T3): `src/lib/projectFile.ts` serializes/parses/validates `.clipforge.json` (version + shape checks); TopBar has Simpan (download) and Buka (file input) plus an honest "Belum disimpan / Tersimpan" state with an amber dot. Dirty is derived from a `lastSaved` reference snapshot, so undoing back to the saved state clears it. Native Tauri dialog/fs plugin transport is a documented follow-up.
 - Panel layout persistence (T2): library/inspector width and timeline height persist in `localStorage` via injectable `src/lib/layoutStorage.ts` (clamped, corrupt-safe).
+- Subtitle import (T4): `src/lib/subtitles.ts` parses SRT/WebVTT/JSON into Word[]; TopBar "Subjudul" button; `setWords` is one undoable mutation that clamps clip anchors into the new word range.
+- Audio import + waveform (T5): Timeline "Audio" button decodes audio via Web Audio (`src/lib/audio.ts`), stores `{path, duration}` through undoable `setAudio`, and draws a peak waveform on the audio lane (canvas, display cache in `uiStore.audioPeaks`). Preview does NOT play sound yet.
+- Preview safe-area toggle + resolution/FPS info row (UI_SPEC §5).
 - `TopBar.tsx`, `ModePlaceholder.tsx`.
 - Resizable panels: drag handles between library/preview, preview/inspector, and above the timeline; sizes live in `uiStore` (clamped, double-click to reset, hidden under 1100px).
 - `MaterialLibrary.tsx`: search by name/id, data-driven category chips (All/Scene/Overlay), "+ Insert" per template that adds a clip at the playhead word (`projectStore.addClip`), and live 9:16 template preview thumbnails (scaled mini iframes with manifest defaults + active theme tokens; word-driven templates get demo words; scale tracks panel resize via ResizeObserver).
@@ -43,7 +46,9 @@ Do not rely on previous chat history. Inspect the actual repository before codin
 
 ### Not implemented / not verified
 - Autosave (manual save/open and dirty state exist).
-- Audio import and waveform on the timeline audio lane.
+- Real audio playback during preview (imported audio is metadata + waveform only).
+- Word-level alignment workflow and true re-timing on re-alignment (`setWords` only clamps anchor indices).
+- Visual asset import; lane reordering UI; anchor `offset` editing UI.
 - Anchor `offset` editing and lane reordering UI (drag/resize only shifts whole word indices).
 - Real Material Library thumbnails (still a gradient placeholder).
 - Real asset import and subtitle processing pipelines.
@@ -57,8 +62,8 @@ Do not rely on previous chat history. Inspect the actual repository before codin
 - `npm run templates:index`: PASS; indexed 2 templates.
 - `npm run typecheck`: PASS (after merging T1+T2 and T3 save/open work).
 - `npm run build`: PASS.
-- `npm run test` (vitest): PASS; 88 tests / 8 files.
-- Browser smoke test against `npm run dev` (Chromium automation, no Tauri): PASS — dirty dot + "Belum disimpan" on mutation; Undo button and Ctrl+Z restore the value and clear dirty; Redo re-marks dirty; Simpan clears dirty; library width 360px survives reload. Earlier: layout, search, insert, selection, duplicate/delete, word-snapped drag, resize handles, play/pause, word-click seek, karaoke `__seek` sync, panel resize sweep 200→440px. Open-file GUI flow NOT testable in the automation browser (upload unsupported) — covered by unit tests.
+- `npm run test` (vitest): PASS; 119 tests / 10 files.
+- Browser smoke test against `npm run dev` (Chromium automation, no Tauri): PASS — dirty dot + "Belum disimpan" on mutation; Undo button and Ctrl+Z restore the value and clear dirty; Redo re-marks dirty; Simpan clears dirty and fires a download event; Ctrl+S fires a download; "Subjudul" button present; library width 360px survives reload; safe-area toggle works; after T5 the Audio button + placeholder render correctly, 13 word blocks, word-click seek still works. Open/subtitle/audio GUI import flows NOT testable in the automation browser (upload unsupported) — covered by unit tests (parsers, store mutations, round-trips).
 - `cargo check` / `npm run tauri:dev`: NOT RE-RUN; still expected BLOCKED on missing system `glib-2.0`.
 - Tauri desktop runtime test: NOT RUN.
 
@@ -158,3 +163,10 @@ Update `docs/STATUS.md` and `docs/ROADMAP.md` whenever implementation status cha
 - **Validation:** typecheck PASS, 88 tests / 8 files PASS, build PASS. Browser smoke PASS: dirty dot + "Belum disimpan" on mutation; Undo button and Ctrl+Z clear dirty; Redo re-marks dirty; Simpan clears dirty; 360px panel width survives reload. Open-file GUI flow untestable in the automation browser (upload unsupported) — covered by unit tests.
 - **Known issues:** Open flow only validated by unit tests in GUI terms; autosave still open; Tauri runtime still blocked on `glib-2.0`.
 - **Next task:** T4 subtitle import, then T5 audio import + waveform.
+
+### 2026-11-02 — Multi-agent round 2: T4 subtitle import, T5 audio+waveform, safe-area toggle
+- **Goal:** Finish all browser-verifiable M2/M3 items using parallel agents while the user was away.
+- **Done:** T4 (subagent, worktree `../clipforge-t4`, merged `d28cd81`): SRT/VTT/JSON parsers + "Subjudul" button + undoable `setWords` with anchor clamping + Ctrl+S. T5 (subagent, worktree `../clipforge-t5`, merged ff `c07d7b0`): Web Audio decode + `computePeaks` + undoable `setAudio` + canvas waveform on the audio lane. Side task (me): safe-area overlay toggle + resolution info row in the preview.
+- **Validation:** main after merges: typecheck PASS, 119 tests / 10 files PASS, build PASS. Browser: Subjudul button present, Ctrl+S fires download, Audio button + placeholder intact, word-click seek regression PASS, safe-area toggle verified earlier.
+- **Known issues:** audio file GUI import untestable in automation browser (upload unsupported); extracted audio is not played back yet; waveform is a display cache (undo of setAudio does not restore it).
+- **Next task:** autosave, audio playback in preview, lane/offset UI, Tauri dialogs (blocked on glib-2.0 sudo).

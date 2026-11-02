@@ -1,6 +1,6 @@
 # ClipForge — Current Status
 
-> Last verified: 2026-11-02 (T1 undo/redo + T2 layout persistence + T3 save/open merged)  
+> Last verified: 2026-11-02 (T1-T5 merged: undo/redo, layout persistence, save/open+dirty, subtitle import, audio import+waveform)  
 > Update this file whenever implementation status or validation changes.  
 > Status labels: `DONE` = implemented and verified; `PARTIAL` = some working code exists; `PLANNED` = not implemented; `BLOCKED` = cannot proceed without resolving a dependency/decision.
 
@@ -21,9 +21,11 @@
 | Top-level layout | PARTIAL | TopBar, MaterialLibrary and ModePlaceholder components exist. Side panels and timeline height are user-resizable via drag handles (clamped in `uiStore`); handles hidden in narrow-screen layouts. |
 | Preview | PARTIAL | PreviewStage composes active scene/overlay iframe layers, playback controls, and now scales the frame to the available panel (ResizeObserver); verified in browser. |
 | Inspector | DONE | Manifest-driven text/textarea/number/color/enum controls, selected clip metadata, resolved timing, and duplicate/delete clip actions; verified in browser. |
-| Timeline | PARTIAL | Ruler seeking, zoom, word-caption blocks, overlay/video lanes, clip selection, playhead, plus clip drag (word-snapped move) and left/right resize handles; audio lane is still a placeholder (no waveform); clip creation happens through the library, not on the timeline itself. |
+| Timeline | PARTIAL | Ruler seeking, zoom, word-caption blocks, overlay/video lanes, clip selection, playhead, clip drag (word-snapped move) and left/right resize handles. Audio lane now imports an audio file and renders a real waveform (canvas, peaks cached in uiStore); no scene clip creation on the timeline itself yet. |
 | Material Library | PARTIAL | Search by name/id, data-driven category chips (All/Scene/Overlay), "+ Insert" at the playhead word, and live 9:16 template preview thumbnails (mini iframes rendering the actual template with manifest defaults; word-driven templates get demo words). |
 | Project mutation actions | PARTIAL | `projectStore` now has `addClip`, `deleteClip`, `duplicateClip`, `setClipAnchors`, `shiftClip`; covered by unit tests. |
+| Subtitle import | DONE | SRT/WebVTT/JSON parsers (`src/lib/subtitles.ts`, 14 tests) via the TopBar "Subjudul" button; `setWords` is one undoable mutation and clamps clip anchors into the new word range. |
+| Audio import + waveform | DONE | Timeline "Audio" button decodes via Web Audio (`src/lib/audio.ts`), stores duration through undoable `setAudio` and renders a peak waveform on the audio lane. |
 | Asset import/library | PLANNED | MaterialLibrary lists templates; it is not a full imported asset manager. |
 | Project save/open | DONE | Browser-native: TopBar Simpan downloads `.clipforge.json`, Buka validates version+shape and loads it (`src/lib/projectFile.ts`, unit-tested). Native Tauri dialog/fs plugin transport is a documented follow-up (blocked on Rust toolchain). |
 | Dirty state | DONE | `projectStore.dirty` derived from `lastSaved` snapshot (undo back to the saved state clears it); TopBar shows an honest "Belum disimpan / Tersimpan" status + amber dot. |
@@ -79,9 +81,9 @@
 | `npm install` | PASS — dependencies present; `vitest` added as devDependency in session 2. |
 | `npm run typecheck` | PASS — re-run after all session-2 changes. |
 | `npm run build` | PASS — Vite production build completed after all session-2 changes. |
-| `npm run test` (vitest) | PASS — 88 tests / 8 files (history, layoutStorage, projectFile, anchors, insert, templates, projectStore, uiStore); re-run after merging T1+T2 and the T3 save/open work. |
+| `npm run test` (vitest) | PASS — 119 tests / 10 files (audio, history, layoutStorage, projectFile, subtitles, anchors, insert, templates, projectStore, uiStore); re-run after merging T1+T2+T4+T5 and the T3 work. |
 | Browser smoke test (`npm run dev`, Chromium via automation) | PASS — layout renders, library search + insert, timeline selection, duplicate/delete, word-snapped drag (+90px = +1 word, verified twice), resize handles, play/pause, word-click seek, karaoke `__seek` sync, no stage/timeline overlap. |
-| Multi-agent tasks smoke test (2026-11-02) | PASS — dirty dot + "Belum disimpan" on mutation, Undo button and Ctrl+Z restore the value and clear dirty, Redo re-marks dirty, Simpan clears dirty; library width 360px survives reload from `clipforge.ui.layout.v1`. Open-file GUI flow NOT testable in the automation browser (file upload unsupported there) — covered by unit tests (round-trip + rejection cases). |
+| Multi-agent tasks smoke test (2026-11-02) | PASS — dirty dot + "Belum disimpan" on mutation, Undo button and Ctrl+Z restore the value and clear dirty, Redo re-marks dirty, Simpan clears dirty and fires a download event; Ctrl+S fires a download event; library width 360px survives reload from `clipforge.ui.layout.v1`; safe-area toggle shows/hides 90%/80% guides. Open/subtitle/audio GUI flows NOT testable in the automation browser (file upload unsupported there) — covered by unit tests (parsers, round-trip, rejection cases, store mutations). After T5: Audio button + placeholder intact, 13 word blocks, word-click seek still works. |
 | Panel resize smoke test (2026-11-02) | PASS — library 280→340px, inspector 320→380px, timeline 260→320px via drag handles (exact pixel tracking); double-click resets all three to defaults; clamp limits covered by unit tests. |
 | Library card redesign smoke test (2026-11-02) | PASS — both cards render real template previews in 9:16 thumbs (karaoke shows demo words, fact-card shows default title/body), thumb iframe scale tracks panel resize (280→360px → scale 0.0917→0.1269), no badge/foot overflow at default panel width, insert still works. |
 | `cargo check --manifest-path src-tauri/Cargo.toml` | BLOCKED — missing system `glib-2.0` development package / `glib-2.0.pc` (not re-run this session; unchanged environment). |
