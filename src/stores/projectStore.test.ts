@@ -1,6 +1,7 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useProjectStore } from "./projectStore";
 import { createSampleProject } from "../lib/sampleProject";
+import { createHistory } from "../lib/history";
 import type { TemplateManifest } from "../types/template";
 
 const overlayTemplate: TemplateManifest = {
@@ -24,7 +25,13 @@ const sceneTemplate: TemplateManifest = {
 };
 
 const reset = () => {
-  useProjectStore.setState({ project: createSampleProject(), selectedClipId: "clip-fact-1883" });
+  useProjectStore.setState({
+    project: createSampleProject(),
+    selectedClipId: "clip-fact-1883",
+    history: createHistory(createSampleProject()),
+    canUndo: false,
+    canRedo: false,
+  });
 };
 
 const state = () => useProjectStore.getState();
@@ -140,5 +147,124 @@ describe("projectStore.shiftClip / setClipAnchors", () => {
     const clip = state().project.overlays.find((c) => c.id === "clip-fact-1883");
     expect(clip?.from).toEqual({ word: 1, edge: "start", offset: -0.2 });
     expect(clip?.to).toEqual({ word: 4, edge: "end" });
+  });
+});
+
+describe("projectStore undo/redo", () => {
+  beforeEach(() => {
+    reset();
+    vi.useFakeTimers();
+    return () => vi.useRealTimers();
+  });
+
+  it("undo/redo setClipParam and clears redo on a new mutation", () => {
+    state().setClipParam("clip-fact-1883", "title", "A");
+    state().setClipParam("clip-captions", "body", "B");
+    expect(state().canUndo).toBe(true);
+
+    state().undo();
+    const captions = state().project.overlays.find((c) => c.id === "clip-captions");
+    expect(captions?.params.body).toBeUndefined();
+    expect(state().canRedo).toBe(true);
+
+    state().undo();
+    expect(state().project.overlays.find((c) => c.id === "clip-fact-1883")?.params.title).toBe("1883");
+    expect(state().canUndo).toBe(false);
+
+    state().redo();
+    state().redo();
+    expect(state().project.overlays.find((c) => c.id === "clip-fact-1883")?.params.title).toBe("A");
+
+    // new mutation clears redo
+    state().undo();
+    state().setClipParam("clip-fact-1883", "title", "C");
+    expect(state().canRedo).toBe(false);
+  });
+
+  it("undo removes a newly added clip and redo restores it", () => {
+    const before = state().project;
+    const id = state().addClip(overlayTemplate, 6)!;
+    expect(state().project.overlays.some((c) => c.id === id)).toBe(true);
+    state().undo();
+    expect(state().project.overlays.some((c) => c.id === id)).toBe(false);
+    expect(state().project).toEqual(before);
+    state().redo();
+    expect(state().project.overlays.some((c) => c.id === id)).toBe(true);
+  });
+
+  it("clears selection when the selected clip disappears after undo", () => {
+    const id = state().addClip(overlayTemplate, 6)!;
+    expect(state().selectedClipId).toBe(id);
+    state().undo();
+    expect(state().selectedClipId).toBeNull();
+  });
+
+  it("coalesces rapid setClipParam edits on the same key into one undo step", () => {
+    state().setClipParam("clip-fact-1883", "title", "A");
+    vi.advanceTimersByTime(100);
+    state().setClipParam("clip-fact-1883", "title", "AB");
+    vi.advanceTimersByTime(100);
+    state().setClipParam("clip-fact-1883", "title", "ABC");
+    state().undo();
+    // one step: back to the untouched original
+    expect(state().project.overlays.find((c) => c.id === "clip-fact-1883")?.params.title).toBe("1883");
+    expect(state().canUndo).toBe(false);
+  });
+
+  it("does not coalesce edits outside the 500 ms window", () => {
+    state().setClipParam("clip-fact-1883", "title", "A");
+    vi.advanceTimersByTime(501);
+    state().setClipParam("clip-fact-1883", "title", "AB");
+    state().undo();
+    expect(state().project.overlays.find((c) => c.id === "clip-fact-1883")?.params.title).toBe("A");
+    expect(state().canUndo).toBe(true);
+  });
+
+  it("coalesces rapid shiftClip on the same clip into one step", () => {
+    state().shiftClip("clip-fact-1883", 1);
+    vi.advanceTimersByTime(100);
+    state().shiftClip("clip-fact-1883", 1);
+    state().undo();
+    const clip = state().project.overlays.find((c) => c.id === "clip-fact-1883");
+    expect(clip?.from.word).toBe(6);
+  });
+
+  it("coalesces rapid setClipAnchors on the same clip into one step", () => {
+    state().setClipAnchors("clip-fact-1883", { word: 6, edge: "start" }, { word: 9, edge: "end" });
+    vi.advanceTimersByTime(100);
+    state().setClipAnchors("clip-fact-1883", { word: 7, edge: "start" }, { word: 9, edge: "end" });
+    state().undo();
+    const clip = state().project.overlays.find((c) => c.id === "clip-fact-1883");
+    expect(clip?.from.word).toBe(6);
+    expect(clip?.from.edge).toBe("start");
+  });
+
+  it("selectClip is not an undo step", () => {
+    state().selectClip("clip-captions");
+    expect(state().canUndo).toBe(false);
+  });
+
+  it("enforces the 100-step limit", () => {
+    for (let i = 0; i < 120; i++) {
+      vi.advanceTimersByTime(1000);
+      state().setClipParam("clip-fact-1883", "title", `v${i}`);
+    }
+    let undos = 0;
+    while (state().canUndo) {
+      state().undo();
+      undos++;
+    }
+    expect(undos).toBe(100);
+  });
+
+  it("resetHistory clears past, future and flags", () => {
+    state().setClipParam("clip-fact-1883", "title", "A");
+    state().undo();
+    expect(state().canRedo).toBe(true);
+    state().resetHistory();
+    expect(state().canUndo).toBe(false);
+    expect(state().canRedo).toBe(false);
+    state().redo(); // no-op
+    expect(state().project.overlays.find((c) => c.id === "clip-fact-1883")?.params.title).toBe("1883");
   });
 });

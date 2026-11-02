@@ -10,6 +10,10 @@ const MODES: Array<{ id: Mode; label: string }> = [
 
 export function TopBar() {
   const name = useProjectStore((s) => s.project.meta.name);
+  const undo = useProjectStore((s) => s.undo);
+  const redo = useProjectStore((s) => s.redo);
+  const canUndo = useProjectStore((s) => s.canUndo);
+  const canRedo = useProjectStore((s) => s.canRedo);
   const jobs = useRenderStore((s) => s.jobs.length);
   const mode = useUiStore((s) => s.mode);
   const setMode = useUiStore((s) => s.setMode);
@@ -35,6 +39,12 @@ export function TopBar() {
       </nav>
 
       <span className="spacer" />
+      <button className="btn small" disabled={!canUndo} onClick={undo} title="Undo (Ctrl/Cmd+Z)">
+        ↶ Undo
+      </button>
+      <button className="btn small" disabled={!canRedo} onClick={redo} title="Redo (Ctrl/Cmd+Shift+Z / Ctrl+Y)">
+        ↷ Redo
+      </button>
       <button className="btn" disabled title="Antrean render: milestone M1/M4">
         Render Queue ({jobs})
       </button>

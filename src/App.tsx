@@ -1,5 +1,6 @@
 import { useEffect, useRef, type CSSProperties } from "react";
 import { usePlaybackLoop } from "./lib/usePlaybackLoop";
+import { useHotkeys } from "./lib/useHotkeys";
 import { usePlaybackStore } from "./stores/playbackStore";
 import { useProjectStore } from "./stores/projectStore";
 import { useTemplateStore } from "./stores/templateStore";
@@ -14,6 +15,10 @@ import { Timeline } from "./components/timeline/Timeline";
 
 export function App() {
   usePlaybackLoop();
+  useHotkeys({
+    undo: useProjectStore((s) => s.undo),
+    redo: useProjectStore((s) => s.redo),
+  });
 
   const mode = useUiStore((s) => s.mode);
   const libraryWidth = useUiStore((s) => s.libraryWidth);
