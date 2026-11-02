@@ -25,10 +25,13 @@ const sceneTemplate: TemplateManifest = {
 };
 
 const reset = () => {
+  const sample = createSampleProject();
   useProjectStore.setState({
-    project: createSampleProject(),
+    project: sample,
     selectedClipId: "clip-fact-1883",
-    history: createHistory(createSampleProject()),
+    history: createHistory(sample),
+    lastSaved: sample,
+    dirty: false,
     canUndo: false,
     canRedo: false,
   });
@@ -266,5 +269,47 @@ describe("projectStore undo/redo", () => {
     expect(state().canRedo).toBe(false);
     state().redo(); // no-op
     expect(state().project.overlays.find((c) => c.id === "clip-fact-1883")?.params.title).toBe("1883");
+  });
+});
+
+describe("projectStore dirty tracking", () => {
+  beforeEach(reset);
+
+  it("is clean initially and becomes dirty after a mutation", () => {
+    expect(state().dirty).toBe(false);
+    state().setClipParam("clip-fact-1883", "title", "Changed");
+    expect(state().dirty).toBe(true);
+  });
+
+  it("clears dirty when marked as saved", () => {
+    state().setClipParam("clip-fact-1883", "title", "Changed");
+    state().markSaved();
+    expect(state().dirty).toBe(false);
+    expect(state().project.overlays.find((c) => c.id === "clip-fact-1883")?.params.title).toBe("Changed");
+  });
+
+  it("undo back to the saved snapshot clears dirty", () => {
+    state().setClipParam("clip-fact-1883", "title", "Changed");
+    expect(state().dirty).toBe(true);
+    state().undo();
+    expect(state().dirty).toBe(false);
+    state().redo();
+    expect(state().dirty).toBe(true);
+  });
+
+  it("setProject starts clean with a fresh saved snapshot", () => {
+    state().setClipParam("clip-fact-1883", "title", "Changed");
+    const fresh = createSampleProject();
+    fresh.meta.name = "Imported";
+    state().setProject(fresh);
+    expect(state().dirty).toBe(false);
+    expect(state().project.meta.name).toBe("Imported");
+    expect(state().canUndo).toBe(false);
+  });
+
+  it("mutations after markSaved make it dirty again", () => {
+    state().markSaved();
+    state().deleteClip("clip-captions");
+    expect(state().dirty).toBe(true);
   });
 });

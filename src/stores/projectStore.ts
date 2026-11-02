@@ -23,11 +23,16 @@ interface ProjectState {
   selectedClipId: string | null;
   canUndo: boolean;
   canRedo: boolean;
+  /** Reference snapshot of the last saved/loaded project; dirty = project !== lastSaved. */
+  lastSaved: Project;
+  dirty: boolean;
   history: HistoryState;
   selectClip: (id: string | null) => void;
   undo: () => void;
   redo: () => void;
   resetHistory: () => void;
+  /** Clear the dirty flag after the current project has been written to disk. */
+  markSaved: () => void;
   setClipParam: (clipId: string, key: string, value: ParamValue) => void;
   setProject: (project: Project) => void;
   /** Insert a clip from a template manifest; startWord is a Project.words index. Returns the new id. */
@@ -52,13 +57,20 @@ export const useProjectStore = create<ProjectState>((set, get) => {
    * `key` is the coalescing key (null = never coalesce).
    */
   const commit = (
-    s: { project: Project; selectedClipId: string | null; history: HistoryState },
+    s: { project: Project; selectedClipId: string | null; history: HistoryState; lastSaved: Project },
     nextProject: Project,
     key: string | null,
     patch: Partial<ProjectState> = {},
   ) => {
     const history = pushHistory(s.history, nextProject, key, Date.now());
-    return { project: nextProject, history, canUndo: canUndoHistory(history), canRedo: false, ...patch };
+    return {
+      project: nextProject,
+      history,
+      canUndo: canUndoHistory(history),
+      canRedo: false,
+      dirty: nextProject !== s.lastSaved,
+      ...patch,
+    };
   };
 
   return {
@@ -67,6 +79,8 @@ export const useProjectStore = create<ProjectState>((set, get) => {
     history: createHistory(createSampleProject()),
     canUndo: false,
     canRedo: false,
+    lastSaved: createSampleProject(),
+    dirty: false,
     selectClip: (selectedClipId) => set({ selectedClipId }),
     /** Replace the whole project (e.g. when opening a file). Starts a fresh history. */
     setProject: (project) =>
@@ -75,11 +89,15 @@ export const useProjectStore = create<ProjectState>((set, get) => {
         return {
           project,
           history,
+          lastSaved: project,
+          dirty: false,
           selectedClipId: hasClip(project, s.selectedClipId) ? s.selectedClipId : null,
           canUndo: false,
           canRedo: false,
         };
       }),
+    markSaved: () =>
+      set((s) => (s.dirty ? { lastSaved: s.project, dirty: false } : {} as Partial<ProjectState>)),
     setClipParam: (clipId, key, value) =>
       set((s) => {
         const apply = (c: Clip): Clip => ({ ...c, params: { ...c.params, [key]: value } });
@@ -184,6 +202,7 @@ export const useProjectStore = create<ProjectState>((set, get) => {
           selectedClipId,
           canUndo: canUndoHistory(history),
           canRedo: canRedoHistory(history),
+          dirty: history.present !== s.lastSaved,
         };
       }),
     redo: () =>
@@ -197,6 +216,7 @@ export const useProjectStore = create<ProjectState>((set, get) => {
           selectedClipId,
           canUndo: canUndoHistory(history),
           canRedo: canRedoHistory(history),
+          dirty: history.present !== s.lastSaved,
         };
       }),
     resetHistory: () =>

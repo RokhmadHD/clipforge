@@ -38,7 +38,10 @@ button { cursor: pointer; }
 .topbar { display: flex; align-items: center; gap: 16px; padding: 0 12px; background: var(--panel); border-bottom: 1px solid var(--border); }
 .logo { display: flex; align-items: center; gap: 8px; font-weight: 700; }
 .logo-mark { width: 22px; height: 22px; border-radius: 6px; background: var(--accent); display: grid; place-items: center; font-size: 12px; }
-.project-name { color: var(--text-dim); }
+.project-name { color: var(--text-dim); display: inline-flex; align-items: center; gap: 6px; }
+.dirty-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--amber); display: inline-block; }
+.save-state { font-size: 11px; color: var(--text-dim); white-space: nowrap; }
+.save-error { color: var(--danger); }
 .tabs { display: flex; gap: 4px; margin: 0 auto; background: var(--bg); padding: 3px; border-radius: var(--radius); }
 .tab { border: 0; background: transparent; padding: 5px 14px; border-radius: 8px; color: var(--text-dim); }
 .tab.active { background: var(--panel-2); color: var(--text); }
