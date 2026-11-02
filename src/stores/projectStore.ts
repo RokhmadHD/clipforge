@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Clip, Project, WordAnchor } from "../types/project";
+import type { Clip, Project, Word, WordAnchor } from "../types/project";
 import type { ParamValue, TemplateManifest } from "../types/template";
 import { createSampleProject } from "../lib/sampleProject";
 import { insertionAnchors, pickOverlayLane, shiftAnchor, uniqueClipId } from "../lib/insert";
@@ -35,6 +35,12 @@ interface ProjectState {
   markSaved: () => void;
   setClipParam: (clipId: string, key: string, value: ParamValue) => void;
   setProject: (project: Project) => void;
+  /**
+   * Replace all subtitle words (subtitle import). One undo step (no coalescing).
+   * Every clip's from.word/to.word is clamped into the new word range 0..len-1
+   * in the SAME committed project (edges/offsets preserved), so anchors never dangle.
+   */
+  setWords: (words: Word[]) => void;
   /** Insert a clip from a template manifest; startWord is a Project.words index. Returns the new id. */
   addClip: (template: TemplateManifest, startWord: number) => string | null;
   deleteClip: (clipId: string) => void;
@@ -102,6 +108,25 @@ export const useProjectStore = create<ProjectState>((set, get) => {
       }),
     markSaved: () =>
       set((s) => (s.dirty ? { lastSaved: s.project, dirty: false } : {} as Partial<ProjectState>)),
+    setWords: (words) =>
+      set((s) => {
+        const maxWord = Math.max(words.length - 1, 0);
+        const clampAnchor = (anchor: WordAnchor): WordAnchor => ({
+          ...anchor,
+          word: Math.min(Math.max(anchor.word, 0), maxWord),
+        });
+        const clampClip = (clip: Clip): Clip => ({
+          ...clip,
+          from: clampAnchor(clip.from),
+          to: clampAnchor(clip.to),
+        });
+        return commit(s, {
+          ...s.project,
+          words,
+          scenes: s.project.scenes.map(clampClip),
+          overlays: s.project.overlays.map(clampClip),
+        }, null);
+      }),
     setClipParam: (clipId, key, value) =>
       set((s) => {
         const apply = (c: Clip): Clip => ({ ...c, params: { ...c.params, [key]: value } });

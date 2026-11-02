@@ -3,6 +3,7 @@ import { useProjectStore } from "./projectStore";
 import { createSampleProject } from "../lib/sampleProject";
 import { createHistory } from "../lib/history";
 import type { TemplateManifest } from "../types/template";
+import type { Word } from "../types/project";
 
 const overlayTemplate: TemplateManifest = {
   id: "fact-card",
@@ -269,6 +270,51 @@ describe("projectStore undo/redo", () => {
     expect(state().canRedo).toBe(false);
     state().redo(); // no-op
     expect(state().project.overlays.find((c) => c.id === "clip-fact-1883")?.params.title).toBe("1883");
+  });
+});
+
+describe("projectStore.setWords", () => {
+  beforeEach(reset);
+
+  const importedWords: Word[] = [
+    { text: "Satu", start: 0, end: 0.5 },
+    { text: "Dua", start: 0.5, end: 1.0 },
+    { text: "Tiga", start: 1.0, end: 1.6 },
+  ];
+
+  it("replaces words and marks the project dirty", () => {
+    expect(state().dirty).toBe(false);
+    state().setWords(importedWords);
+    expect(state().project.words).toEqual(importedWords);
+    expect(state().dirty).toBe(true);
+  });
+
+  it("is a single undo step: undo restores the previous words snapshot", () => {
+    const before = state().project;
+    state().setWords(importedWords);
+    expect(state().canUndo).toBe(true);
+    state().undo();
+    expect(state().project).toBe(before);
+    expect(state().canUndo).toBe(false);
+    expect(state().dirty).toBe(false);
+    state().redo();
+    expect(state().project.words).toEqual(importedWords);
+  });
+
+  it("clamps out-of-range clip anchors into the new word range, preserving edges and offsets", () => {
+    // sample project has 13 words; clip-captions anchors 0..12, clip-fact-1883 6..10 (offset -0.2)
+    state().setWords([{ text: "Halo", start: 0, end: 1 }]);
+    const captions = state().project.overlays.find((c) => c.id === "clip-captions");
+    const fact = state().project.overlays.find((c) => c.id === "clip-fact-1883");
+    expect(captions?.from).toEqual({ word: 0, edge: "start" });
+    expect(captions?.to).toEqual({ word: 0, edge: "end" });
+    expect(fact?.from).toEqual({ word: 0, edge: "start", offset: -0.2 });
+    expect(fact?.to).toEqual({ word: 0, edge: "end" });
+    // redo restores the committed (clamped) new state again, not the old snapshot
+    state().redo();
+    const restored = state().project.overlays.find((c) => c.id === "clip-fact-1883");
+    expect(restored?.from).toEqual({ word: 0, edge: "start", offset: -0.2 });
+    expect(restored?.to).toEqual({ word: 0, edge: "end" });
   });
 });
 
